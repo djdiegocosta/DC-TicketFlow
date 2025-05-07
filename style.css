@@ -1,0 +1,373 @@
+/* Global Styles */
+:root {
+    --primary: #1e88e5;
+    --primary-dark: #1565c0;
+    --success: #43a047;
+    --warning: #ffb300;
+    --danger: #e53935;
+    --secondary: #546e7a;
+    --light: #f5f5f5;
+    --dark: #263238;
+    --text: #37474f;
+    --bg-color: #fafafa;
+    --card-bg: #ffffff;
+    --border-radius: 12px;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+body {
+    font-family: 'Montserrat', 'Roboto', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text);
+    transition: var(--transition);
+    overflow-x: hidden;
+}
+
+/* Login Screen */
+.login-card {
+    max-width: 400px;
+    width: 100%;
+    padding: 30px;
+    border-radius: var(--border-radius);
+    background-color: var(--card-bg);
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+}
+
+.login-card h2 {
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.login-card input {
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: var(--transition);
+}
+
+.login-card input:focus {
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.2);
+    border-color: var(--primary);
+}
+
+/* Dashboard Cards */
+.card {
+    border-radius: var(--border-radius);
+    border: none;
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+    transition: var(--transition);
+    margin-bottom: 20px;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    font-weight: 600;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* Buttons */
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: var(--transition);
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: all 0.5s;
+}
+
+.btn:hover:before {
+    left: 100%;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #4caf50, #388e3c);
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #f44336, #c62828);
+    color: white;
+}
+
+.btn-outline-primary {
+    border: 1px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+}
+
+/* Tables */
+.table {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+}
+
+.table th {
+    background-color: rgba(0, 0, 0, 0.03);
+    font-weight: 600;
+    color: var(--text);
+    padding: 14px;
+}
+
+.table td {
+    padding: 14px;
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(30, 136, 229, 0.05);
+}
+
+/* Participant Cards */
+.participant-card {
+    border-left: 5px solid var(--primary);
+    background-color: var(--light);
+    border-radius: 8px;
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.participant-card.validated {
+    border-left: 5px solid var(--success);
+    background-color: rgba(67, 160, 71, 0.05);
+}
+
+/* QR Code Reader */
+#qrReader {
+    width: 100%;
+    min-height: 300px;
+    position: relative;
+    background-color: var(--light);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+}
+
+/* Form Controls */
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition: var(--transition);
+    background-color: var(--card-bg);
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.2);
+    border-color: var(--primary);
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+/* Navbar */
+.navbar {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 12px 0;
+}
+
+.navbar-brand {
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: white !important;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: var(--transition);
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link.active {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes successPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.success-pulse {
+    animation: successPulse 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Status Icons */
+.status-icon {
+    font-size: 4rem;
+    display: inline-block;
+    transition: var(--transition);
+}
+
+.status-pending {
+    color: var(--warning);
+}
+
+.status-validated {
+    color: var(--success);
+}
+
+/* Toast notifications */
+.toast {
+    border-radius: var(--border-radius);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+/* Modals */
+.modal-content {
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: var(--box-shadow);
+    overflow: hidden;
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 16px 20px;
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 16px 20px;
+}
+
+/* Badge */
+.badge {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-title {
+        font-size: 1.1rem;
+    }
+    
+    .card-text {
+        font-size: 1.6rem;
+    }
+    
+    #qrReader {
+        min-height: 200px;
+    }
+    
+    .form-control, .form-select {
+        padding: 10px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+    }
+}
+
+/* Quantity Stepper */
+.quantity-stepper {
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stepper-btn {
+    background-color: var(--light);
+    border: none;
+    padding: 8px 16px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.stepper-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.stepper-value {
+    padding: 8px 16px;
+    min-width: 50px;
+    text-align: center;
+    font-weight: 500;
+    border: none;
+    background-color: white;
+}
+
+/* Section transitions */
+.app-section {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.app-section.d-none {
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+}
+
+.app-section:not(.d-none) {
+    opacity: 1;
+    transform: translateY(0);
+    animation: fadeIn 0.5s ease-out;
+}
