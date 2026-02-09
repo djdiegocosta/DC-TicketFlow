@@ -526,7 +526,7 @@ async function loadInitialData() {
         updateLoadingProgress(10, 'Carregando configurações...');
         loadSettings();
         setTheme(state.currentTheme);
-        loadLogo();
+        // Logo is loaded directly in DOM (public URL). Do not block init on logo.
         
         updateLoadingProgress(30, 'Carregando perfil do usuário...');
         if (state.currentUser) {
@@ -1150,7 +1150,7 @@ async function initializeApp() {
     await checkAuthState();
     loadSettings();
     setTheme(state.currentTheme);
-    loadLogo(); // Load logo after settings and theme are loaded
+    // Logo is referenced directly in HTML; skip asynchronous logo loading here.
     
     // Load active event from Supabase first
     showLoading();
@@ -1331,7 +1331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     loadSettings();
     setTheme(state.currentTheme);
-    loadLogo(); // Load logo after settings and theme are loaded
+    // Logo is referenced directly in HTML; skip asynchronous logo loading here.
 
     // Configurar listeners de login/registro
     const loginForm = document.getElementById('login-form');

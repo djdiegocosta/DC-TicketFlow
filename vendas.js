@@ -79,6 +79,81 @@ export function setupSaleHandlers() {
     
     // Setup search input for sales management
     setupSalesSearch();
+
+    // --- AUTO-REFRESH (POLLING) FOR SALES (silent, resilient) ---
+    // Poll the Supabase sales list for the active event every ~18 seconds.
+    // Silent: does not trigger global loading UI and tolerates errors (keeps running).
+    let _salesPollInterval = null;
+    let _isFetchingSalesPoll = false;
+
+    async function fetchAndUpdateSalesCache() {
+        try {
+            // Prevent overlapping fetches
+            if (_isFetchingSalesPoll) return;
+            if (!state.activeEvent || !state.activeEvent.id) return;
+            _isFetchingSalesPoll = true;
+
+            const { data: sales, error: salesError } = await supabase
+                .from('sales')
+                .select('*, tickets(id, ticket_code, participant_name, buyer_name, created_at, status)')
+                .eq('event_id', state.activeEvent.id)
+                .order('created_at', { ascending: false });
+
+            if (salesError) {
+                // log but do not interrupt polling
+                console.warn('Auto-refresh: error fetching sales (ignored):', salesError);
+                return;
+            }
+
+            // Simple equality check to avoid unnecessary re-renders if data identical length and latest id same
+            const prev = state.cachedSalesData || [];
+            const prevLatest = prev[0]?.id;
+            const newLatest = (sales && sales[0]) ? sales[0].id : null;
+            // Update cache and UI only when there's a change (new sale or data length change)
+            if (String(prevLatest) !== String(newLatest) || prev.length !== (sales || []).length) {
+                state.cachedSalesData = sales || [];
+                // Re-render sales management silently (keeps UX uninterrupted)
+                try {
+                    // honor current search input if present
+                    const searchInput = document.getElementById('sales-search');
+                    const query = searchInput ? searchInput.value.toLowerCase() : '';
+                    await renderFilteredSales(query);
+                } catch (renderErr) {
+                    console.warn('Auto-refresh: error rendering sales UI (ignored):', renderErr);
+                }
+            }
+        } catch (err) {
+            console.warn('Auto-refresh: unexpected error (ignored):', err);
+        } finally {
+            _isFetchingSalesPoll = false;
+        }
+    }
+
+    function startSalesPolling() {
+        // clear existing if any
+        if (_salesPollInterval) clearInterval(_salesPollInterval);
+        // Run an initial silent fetch immediately, then interval
+        fetchAndUpdateSalesCache().catch(() => {});
+        _salesPollInterval = setInterval(fetchAndUpdateSalesCache, 18000); // 18s
+        // store on window to allow debugging/cleanup if needed
+        window.__ticketflow_sales_poll = _salesPollInterval;
+    }
+
+    function stopSalesPolling() {
+        if (_salesPollInterval) {
+            clearInterval(_salesPollInterval);
+            _salesPollInterval = null;
+            try { delete window.__ticketflow_sales_poll; } catch {}
+        }
+    }
+
+    // Start polling when handlers are set up
+    startSalesPolling();
+
+    // Ensure polling is stopped if the page is unloaded
+    window.addEventListener('beforeunload', () => {
+        stopSalesPolling();
+    });
 }
 
 /**

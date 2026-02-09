@@ -72,8 +72,11 @@
             </button>
             <!-- Contêiner do Logo e Título do Aplicativo -->
             <div class="logo-container">
-                 <img id="app-logo" alt="TicketFlow Logo">
-                <h1 id="app-title">TICKETFLOW</h1>
+                 <!-- Load logo directly from Supabase public bucket; hide if it fails -->
+                 <img id="app-logo" alt="TicketFlow Logo"
+                      src="https://jrhgzviaebkhhaculpio.supabase.co/storage/v1/object/public/ticketflow/logo%20ticketflow2.png"
+                      onerror="this.style.display='none';document.getElementById('app-title').style.display='block';" />
+                <h1 id="app-title" style="display:block">TICKETFLOW</h1>
             </div>
             <!-- Espaçador para alinhar o título quando o hambúrguer não está visível (desktop) -->
             <div class="header-spacer"></div>
