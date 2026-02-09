@@ -1,14 +1,13 @@
-# DC TicketFlow
+# 📋 TicketFlow - Manual do Sistema
 
-Sistema web para controle de vendas de ingressos de eventos, com registro de participantes e validação de entrada via QR Code, integrado com Google Sheets.
+## 📖 Visão Geral
 
-## Funcionalidades
+O **TicketFlow** é um sistema completo de gerenciamento de eventos e vendas de ingressos, desenvolvido com JavaScript vanilla e integrado ao Supabase para banco de dados e autenticação. O sistema permite criação de eventos, controle de vendas, registro de cortesias, check-in de participantes e geração de relatórios financeiros.
 
-- **Login Simplificado**: Acesso protegido por senha fixa
-- **Vendas de Ingressos**: Formulário para registrar vendas com múltiplos participantes
-- **Painel de Vendas**: Visualização, busca e gerenciamento de vendas
-- **Geração de QR Code**: Cada participante recebe um QR Code único
-- **Check-in com Dashboard**: Validação de entrada com leitura de QR Code e estatísticas em tempo real
+---
 
-(Rest of the README remains the same)
+## 🏗️ Arquitetura do Sistema
+
+### 📁 Estrutura de Arquivos
+
 

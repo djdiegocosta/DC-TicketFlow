@@ -1,0 +1,64 @@
+{
+  "name": "ticketflow-desktop",
+  "version": "1.0.0",
+  "description": "Desktop (Electron) wrapper for the TicketFlow web application, keeping Supabase backend and auth 100% online.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "vite",
+    "build:web": "vite build",
+    "preview": "vite preview",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "prepare:frontend": "cd frontend && npm install"
+  },
+  "author": "TicketFlow",
+  "license": "MIT",
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.0"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.ticketflow.app",
+    "productName": "TicketFlow",
+    "files": [
+      "main.js",
+      "index.html",
+      "styles.css",
+      "app.js",
+      "eventos.js",
+      "vendas.js",
+      "courtesias.js",
+      "checkin.js",
+      "users.js",
+      "logs.js",
+      "utils.js",
+      "ticket-pdf.css",
+      "favcon.png",
+      "database.md",
+      "supabase_schema.sql",
+      "1.0",
+      "frontend/dist"
+    ],
+    "directories": {
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build"
+    },
+    "asar": true
+  }
+}

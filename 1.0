@@ -1,0 +1,536 @@
+
+``` supabase_schema.sql
+-- =============================================
+-- TICKETFLOW - SCHEMA COMPLETO DO BANCO DE DADOS
+-- =============================================
+-- Versão: 1.0
+-- Data de criação: Dezembro 2024
+-- Compatibilidade: PostgreSQL 13+ / Supabase
+-- 
+-- Este arquivo contém o schema completo para um banco de dados
+-- 100% funcional e integrado ao sistema TicketFlow.
+-- 
+-- IMPORTANTE: Execute este script em um banco de dados vazio
+-- ou faça backup antes de aplicar em um banco existente.
+-- =============================================
+
+-- =============================================
+-- EXTENSÕES NECESSÁRIAS
+-- =============================================
+
+-- Habilita extensão UUID para geração de identificadores únicos
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- =============================================
+-- LIMPEZA DE TABELAS EXISTENTES (OPCIONAL)
+-- =============================================
+-- Descomente as linhas abaixo APENAS se precisar recriar as tabelas
+-- ATENÇÃO: Isso apagará todos os dados existentes
+
+-- DROP TABLE IF EXISTS public.error_logs CASCADE;
+-- DROP TABLE IF EXISTS public.tickets CASCADE;
+-- DROP TABLE IF EXISTS public.sales CASCADE;
+-- DROP TABLE IF EXISTS public.events CASCADE;
+-- DROP TABLE IF EXISTS public.users CASCADE;
+
+-- =============================================
+-- TABELA: users (Perfis de Usuário)
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Armazena perfis de usuários com diferentes níveis de acesso
+-- Integração: Vinculada ao auth.users do Supabase
+-- Arquivos relacionados: users.js, app.js
+
+CREATE TABLE IF NOT EXISTS public.users (
+    -- Chave primária vinculada ao sistema de autenticação do Supabase
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    -- E-mail único do usuário (obrigatório)
+    email TEXT UNIQUE NOT NULL,
+    -- Nome de usuário único (obrigatório)
+    username TEXT UNIQUE NOT NULL,
+    -- Nível de acesso: 'check' (apenas check-in), 'manager' (gerente), 'admin' (administrador)
+    role TEXT NOT NULL DEFAULT 'check' CHECK (role IN ('check', 'manager', 'admin')),
+    -- Timestamp de criação automático
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    -- Timestamp de última atualização automático
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Comentários da tabela e colunas para documentação
+COMMENT ON TABLE public.users IS 'Perfis de usuários do sistema com controle de acesso por níveis';
+COMMENT ON COLUMN public.users.id IS 'UUID vinculado ao auth.users do Supabase';
+COMMENT ON COLUMN public.users.email IS 'E-mail único para login e contato';
+COMMENT ON COLUMN public.users.username IS 'Nome de usuário para identificação';
+COMMENT ON COLUMN public.users.role IS 'Nível de acesso: check, manager ou admin';
+
+-- =============================================
+-- TABELA: events (Eventos)
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Gerencia eventos ativos e histórico com dados financeiros
+-- Arquivos relacionados: eventos.js, app.js
+
+CREATE TABLE IF NOT EXISTS public.events (
+    -- Chave primária UUID gerada automaticamente
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    -- Nome do evento (obrigatório)
+    name TEXT NOT NULL,
+    -- Local onde o evento será realizado (obrigatório)
+    location TEXT NOT NULL,
+    -- Data do evento (obrigatório)
+    event_date DATE NOT NULL,
+    -- Horário de início do evento (obrigatório)
+    event_time TIME NOT NULL,
+    -- Preço padrão do ingresso (obrigatório, valor positivo)
+    ticket_price NUMERIC(10,2) NOT NULL CHECK (ticket_price >= 0),
+    -- Status do evento: 'active' (ativo), 'finished' (encerrado), 'cancelled' (cancelado)
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'finished', 'cancelled')),
+    -- Timestamp de quando o evento foi encerrado (NULL para eventos ativos)
+    encerrado_em TIMESTAMP WITH TIME ZONE,
+    
+    -- === DADOS FINANCEIROS DO EVENTO ===
+    -- Receita de vendas na bilheteria física
+    box_office_sales NUMERIC(10,2) DEFAULT 0.00 CHECK (box_office_sales >= 0),
+    -- Receita de vendas online
+    online_sales NUMERIC(10,2) DEFAULT 0.00 CHECK (online_sales >= 0),
+    -- Custo com infraestrutura e montagem
+    infra_cost NUMERIC(10,2) DEFAULT 0.00 CHECK (infra_cost >= 0),
+    -- Custo com equipe de trabalho
+    staff_cost NUMERIC(10,2) DEFAULT 0.00 CHECK (staff_cost >= 0),
+    -- Outras despesas do evento (atrações, licenças, etc.)
+    event_other_expenses NUMERIC(10,2) DEFAULT 0.00 CHECK (event_other_expenses >= 0),
+    
+    -- === DADOS FINANCEIROS DO BAR ===
+    -- Receita total das vendas do bar
+    bar_sales NUMERIC(10,2) DEFAULT 0.00 CHECK (bar_sales >= 0),
+    -- Custo com bebidas para o bar
+    bar_cost_beverages NUMERIC(10,2) DEFAULT 0.00 CHECK (bar_cost_beverages >= 0),
+    -- Custo com copos, gelo e outros itens diversos
+    bar_cost_misc NUMERIC(10,2) DEFAULT 0.00 CHECK (bar_cost_misc >= 0),
+    -- Outras despesas diversas do bar
+    bar_other_expenses NUMERIC(10,2) DEFAULT 0.00 CHECK (bar_other_expenses >= 0),
+    
+    -- Observações e anotações sobre o evento ou relatório financeiro
+    observations TEXT,
+    -- ID do usuário que criou o evento (NULL se usuário for excluído)
+    created_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    -- Timestamps de controle
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Comentários da tabela
+COMMENT ON TABLE public.events IS 'Eventos com dados básicos e relatórios financeiros integrados';
+COMMENT ON COLUMN public.events.status IS 'Status: active (um por vez), finished (histórico), cancelled';
+COMMENT ON COLUMN public.events.encerrado_em IS 'Timestamp de encerramento do evento';
+COMMENT ON COLUMN public.events.box_office_sales IS 'Receita de vendas presenciais';
+COMMENT ON COLUMN public.events.bar_sales IS 'Receita total do bar do evento';
+
+-- Índices para melhor performance
+CREATE INDEX IF NOT EXISTS idx_events_status ON public.events(status);
+CREATE INDEX IF NOT EXISTS idx_events_date ON public.events(event_date);
+CREATE INDEX IF NOT EXISTS idx_events_created_by ON public.events(created_by_user_id);
+
+-- =============================================
+-- TABELA: sales (Vendas)
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Agrupa múltiplos ingressos em uma transação de venda
+-- Arquivos relacionados: vendas.js
+
+CREATE TABLE IF NOT EXISTS public.sales (
+    -- Chave primária UUID gerada automaticamente
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    -- Referência ao evento (CASCADE: exclui vendas quando evento é excluído)
+    event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+    -- Código único legível da venda (formato: SALE-XXXXXXXX)
+    sale_code TEXT UNIQUE NOT NULL,
+    -- Valor total pago por todos os ingressos desta venda
+    total_amount NUMERIC(10,2) NOT NULL CHECK (total_amount >= 0),
+    -- Quantidade de ingressos incluídos nesta venda
+    number_of_tickets INTEGER NOT NULL CHECK (number_of_tickets >= 1),
+    -- ID do usuário que registrou a venda
+    created_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    -- Timestamps de controle
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Comentários da tabela
+COMMENT ON TABLE public.sales IS 'Transações de venda que agrupam um ou mais ingressos';
+COMMENT ON COLUMN public.sales.sale_code IS 'Código único no formato SALE-XXXXXXXX';
+COMMENT ON COLUMN public.sales.total_amount IS 'Valor total da transação';
+
+-- Índices para melhor performance
+CREATE INDEX IF NOT EXISTS idx_sales_event ON public.sales(event_id);
+CREATE INDEX IF NOT EXISTS idx_sales_code ON public.sales(sale_code);
+CREATE INDEX IF NOT EXISTS idx_sales_created_at ON public.sales(created_at);
+
+-- =============================================
+-- TABELA: tickets (Ingressos)
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Representa ingressos individuais (vendidos ou cortesias)
+-- Arquivos relacionados: vendas.js, courtesias.js, checkin.js
+
+CREATE TABLE IF NOT EXISTS public.tickets (
+    -- Chave primária UUID gerada automaticamente
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    -- Código único do ingresso impresso (formato: TICKET-XXXXXXXX)
+    ticket_code TEXT UNIQUE NOT NULL,
+    -- Referência ao evento (CASCADE: exclui tickets quando evento é excluído)
+    event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+    -- Referência à venda (NULL para cortesias, CASCADE para vendas normais)
+    sale_id UUID REFERENCES public.sales(id) ON DELETE CASCADE,
+    -- Nome completo do portador do ingresso
+    buyer_name TEXT NOT NULL,
+    -- Tipo do ingresso: 'normal' (venda) ou 'courtesy' (cortesia)
+    ticket_type TEXT NOT NULL CHECK (ticket_type IN ('normal', 'courtesy')),
+    -- Status do ingresso: 'valid' (válido), 'used' (check-in feito), 'cancelled' (cancelado)
+    status TEXT NOT NULL DEFAULT 'valid' CHECK (status IN ('valid', 'used', 'cancelled')),
+    -- Timestamp de quando foi feito o check-in (NULL se não foi feito)
+    checked_in_at TIMESTAMP WITH TIME ZONE,
+    -- Timestamps de controle
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Constraint: cortesias não podem ter sale_id
+    CONSTRAINT check_courtesy_no_sale 
+        CHECK ((ticket_type = 'courtesy' AND sale_id IS NULL) OR 
+               (ticket_type = 'normal' AND sale_id IS NOT NULL))
+);
+
+-- Comentários da tabela
+COMMENT ON TABLE public.tickets IS 'Ingressos individuais (vendidos ou cortesias)';
+COMMENT ON COLUMN public.tickets.ticket_code IS 'Código único no formato TICKET-XXXXXXXX';
+COMMENT ON COLUMN public.tickets.ticket_type IS 'Tipo: normal (venda) ou courtesy (gratuito)';
+COMMENT ON COLUMN public.tickets.status IS 'Status: valid, used (check-in), cancelled';
+COMMENT ON COLUMN public.tickets.checked_in_at IS 'Timestamp do check-in (NULL se não feito)';
+
+-- Índices para melhor performance
+CREATE INDEX IF NOT EXISTS idx_tickets_event ON public.tickets(event_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_sale ON public.tickets(sale_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_code ON public.tickets(ticket_code);
+CREATE INDEX IF NOT EXISTS idx_tickets_type ON public.tickets(ticket_type);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON public.tickets(status);
+CREATE INDEX IF NOT EXISTS idx_tickets_buyer_name ON public.tickets(buyer_name);
+
+-- =============================================
+-- TABELA: error_logs (Logs de Erro)
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Registra erros do sistema para diagnóstico e monitoramento
+-- Arquivos relacionados: logs.js, utils.js
+
+CREATE TABLE IF NOT EXISTS public.error_logs (
+    -- Chave primária UUID gerada automaticamente
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    -- Código interno que categoriza o erro (ex: DB_CONN_FAIL, VALIDATION_ERROR)
+    code TEXT,
+    -- Mensagem de erro amigável para exibição ao usuário
+    message TEXT NOT NULL,
+    -- Detalhes técnicos da causa do erro (stack trace, mensagem da exceção)
+    cause TEXT,
+    -- Instruções sugeridas para resolver o erro
+    solution TEXT NOT NULL,
+    -- Módulo ou área do sistema onde o erro ocorreu (ex: Login, Vendas, Check-in)
+    context TEXT,
+    -- Timestamp de quando o erro foi registrado
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Comentários da tabela
+COMMENT ON TABLE public.error_logs IS 'Logs de erro do sistema para diagnóstico';
+COMMENT ON COLUMN public.error_logs.code IS 'Código interno de categorização do erro';
+COMMENT ON COLUMN public.error_logs.message IS 'Mensagem amigável para o usuário';
+COMMENT ON COLUMN public.error_logs.cause IS 'Detalhes técnicos do erro';
+COMMENT ON COLUMN public.error_logs.solution IS 'Instruções para resolução';
+COMMENT ON COLUMN public.error_logs.context IS 'Módulo onde o erro ocorreu';
+
+-- Índices para melhor performance
+CREATE INDEX IF NOT EXISTS idx_error_logs_code ON public.error_logs(code);
+CREATE INDEX IF NOT EXISTS idx_error_logs_context ON public.error_logs(context);
+CREATE INDEX IF NOT EXISTS idx_error_logs_created_at ON public.error_logs(created_at);
+
+-- =============================================
+-- CONFIGURAÇÃO DE SEGURANÇA (RLS)
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Implementa Row Level Security para controle de acesso
+
+-- Ativa Row Level Security em todas as tabelas
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.error_logs ENABLE ROW LEVEL SECURITY;
+
+-- =============================================
+-- POLÍTICAS RLS PARA TABELA users
+-- =============================================
+
+-- Usuários podem ver seu próprio perfil
+CREATE POLICY "Users can view own profile" 
+    ON public.users FOR SELECT 
+    USING (auth.uid() = id);
+
+-- Admins podem ver todos os usuários
+CREATE POLICY "Admins can view all users" 
+    ON public.users FOR SELECT 
+    USING (EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() AND role = 'admin'
+    ));
+
+-- Admins podem criar perfis de usuário (após auth.signUp)
+CREATE POLICY "Admins can create users" 
+    ON public.users FOR INSERT 
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() AND role = 'admin'
+    ));
+
+-- Usuários podem atualizar seu próprio perfil
+CREATE POLICY "Users can update own profile" 
+    ON public.users FOR UPDATE 
+    USING (auth.uid() = id);
+
+-- Admins podem atualizar qualquer usuário
+CREATE POLICY "Admins can update all users" 
+    ON public.users FOR UPDATE 
+    USING (EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() AND role = 'admin'
+    ));
+
+-- Admins podem excluir usuários, mas não a si mesmos
+CREATE POLICY "Admins can delete users" 
+    ON public.users FOR DELETE 
+    USING (EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() AND role = 'admin'
+    ) AND id <> auth.uid());
+
+-- =============================================
+-- POLÍTICAS RLS PARA EVENTOS, VENDAS E TICKETS
+-- =============================================
+
+-- Todos os usuários autenticados podem visualizar eventos
+CREATE POLICY "Authenticated users can view events" 
+    ON public.events FOR SELECT 
+    USING (auth.uid() IS NOT NULL);
+
+-- Usuários autenticados podem criar eventos
+CREATE POLICY "Authenticated users can create events" 
+    ON public.events FOR INSERT 
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+-- Usuários autenticados podem atualizar eventos
+CREATE POLICY "Authenticated users can update events" 
+    ON public.events FOR UPDATE 
+    USING (auth.uid() IS NOT NULL);
+
+-- Usuários autenticados podem excluir eventos
+CREATE POLICY "Authenticated users can delete events" 
+    ON public.events FOR DELETE 
+    USING (auth.uid() IS NOT NULL);
+
+-- Políticas para vendas (sales)
+CREATE POLICY "Authenticated users can view sales" 
+    ON public.sales FOR SELECT 
+    USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Authenticated users can create sales" 
+    ON public.sales FOR INSERT 
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Authenticated users can update sales" 
+    ON public.sales FOR UPDATE 
+    USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Authenticated users can delete sales" 
+    ON public.sales FOR DELETE 
+    USING (auth.uid() IS NOT NULL);
+
+-- Políticas para ingressos (tickets)
+CREATE POLICY "Authenticated users can view tickets" 
+    ON public.tickets FOR SELECT 
+    USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Authenticated users can create tickets" 
+    ON public.tickets FOR INSERT 
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Authenticated users can update tickets" 
+    ON public.tickets FOR UPDATE 
+    USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Authenticated users can delete tickets" 
+    ON public.tickets FOR DELETE 
+    USING (auth.uid() IS NOT NULL);
+
+-- =============================================
+-- POLÍTICAS RLS PARA LOGS DE ERRO
+-- =============================================
+
+-- Apenas admins podem visualizar logs de erro
+CREATE POLICY "Admins can view error logs" 
+    ON public.error_logs FOR SELECT 
+    USING (EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() AND role = 'admin'
+    ));
+
+-- Usuários autenticados podem criar logs de erro
+CREATE POLICY "Authenticated users can create error logs" 
+    ON public.error_logs FOR INSERT 
+    WITH CHECK (auth.uid() IS NOT NULL);
+
+-- Apenas admins podem excluir logs de erro
+CREATE POLICY "Admins can delete error logs" 
+    ON public.error_logs FOR DELETE 
+    USING (EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() AND role = 'admin'
+    ));
+
+-- =============================================
+-- TRIGGERS PARA ATUALIZAÇÃO AUTOMÁTICA
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Atualiza automaticamente o campo updated_at
+
+-- Função para atualizar timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Triggers para atualização automática do updated_at
+CREATE TRIGGER update_users_updated_at 
+    BEFORE UPDATE ON public.users 
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_events_updated_at 
+    BEFORE UPDATE ON public.events 
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_sales_updated_at 
+    BEFORE UPDATE ON public.sales 
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_tickets_updated_at 
+    BEFORE UPDATE ON public.tickets 
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- =============================================
+-- VIEWS ÚTEIS PARA RELATÓRIOS
+-- =============================================
+-- Data de criação: Dezembro 2024
+-- Função: Views para facilitar consultas comuns
+
+-- View para estatísticas de eventos
+CREATE OR REPLACE VIEW event_statistics AS
+SELECT 
+    e.id,
+    e.name,
+    e.event_date,
+    e.status,
+    COUNT(t.id) as total_tickets,
+    COUNT(CASE WHEN t.ticket_type = 'normal' THEN 1 END) as sold_tickets,
+    COUNT(CASE WHEN t.ticket_type = 'courtesy' THEN 1 END) as courtesy_tickets,
+    COUNT(CASE WHEN t.status = 'used' THEN 1 END) as checked_in_tickets,
+    SUM(CASE WHEN t.ticket_type = 'normal' THEN e.ticket_price ELSE 0 END) as total_revenue
+FROM events e
+LEFT JOIN tickets t ON e.id = t.event_id
+GROUP BY e.id, e.name, e.event_date, e.status, e.ticket_price;
+
+COMMENT ON VIEW event_statistics IS 'Estatísticas consolidadas por evento';
+
+-- View para relatório de check-ins
+CREATE OR REPLACE VIEW checkin_report AS
+SELECT 
+    e.name as event_name,
+    e.event_date,
+    t.ticket_code,
+    t.buyer_name,
+    t.ticket_type,
+    t.status,
+    t.checked_in_at,
+    s.sale_code
+FROM tickets t
+JOIN events e ON t.event_id = e.id
+LEFT JOIN sales s ON t.sale_id = s.id
+ORDER BY t.checked_in_at DESC NULLS LAST;
+
+COMMENT ON VIEW checkin_report IS 'Relatório detalhado de check-ins';
+
+-- =============================================
+-- DADOS INICIAIS (OPCIONAL)
+-- =============================================
+-- Descomente as linhas abaixo para inserir dados de teste
+
+-- INSERT INTO public.events (name, location, event_date, event_time, ticket_price, status) 
+-- VALUES 
+--     ('EVENTO DE TESTE', 'LOCAL DE TESTE', CURRENT_DATE + INTERVAL '7 days', '20:00', 50.00, 'active');
+
+-- =============================================
+-- VALIDAÇÃO DO SCHEMA
+-- =============================================
+-- Esta seção pode ser usada para validar se o schema foi criado corretamente
+
+-- Verifica se todas as tabelas foram criadas
+SELECT 
+    schemaname,
+    tablename,
+    tableowner,
+    hasindexes,
+    hasrules,
+    hastriggers
+FROM pg_tables 
+WHERE schemaname = 'public' 
+AND tablename IN ('users', 'events', 'sales', 'tickets', 'error_logs')
+ORDER BY tablename;
+
+-- Verifica se as políticas RLS estão ativas
+SELECT 
+    schemaname,
+    tablename,
+    rowsecurity,
+    relname
+FROM pg_tables pt
+JOIN pg_class pc ON pt.tablename = pc.relname
+WHERE schemaname = 'public' 
+AND tablename IN ('users', 'events', 'sales', 'tickets', 'error_logs');
+
+-- =============================================
+-- OBSERVAÇÕES IMPORTANTES
+-- =============================================
+--
+-- 1. BACKUP: Sempre faça backup antes de aplicar este schema
+-- 
+-- 2. ENVIRONMENT: Este schema foi testado no Supabase (PostgreSQL 13+)
+-- 
+-- 3. PERMISSIONS: Certifique-se de que o usuário tem permissões adequadas
+-- 
+-- 4. RLS: As políticas RLS são cruciais para a segurança do sistema
+-- 
+-- 5. INDEXES: Os índices criados otimizam as consultas mais comuns
+-- 
+-- 6. TRIGGERS: Os triggers mantêm os timestamps atualizados automaticamente
+-- 
+-- 7. CONSTRAINTS: As constraints garantem integridade dos dados
+-- 
+-- 8. VIEWS: As views facilitam consultas complexas e relatórios
+-- 
+-- 9. UPDATES: Sempre atualizar este arquivo quando modificar o schema
+-- 
+-- 10. DOCUMENTATION: Manter comentários atualizados para facilitar manutenção
+-- 
+-- =============================================
+-- FIM DO SCHEMA - TICKETFLOW v1.0
+-- =============================================
+

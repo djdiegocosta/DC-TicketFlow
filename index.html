@@ -1,549 +1,995 @@
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DC TicketFlow</title>
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="style.css">
-    <!-- Import Map for ES modules -->
+    <title>TicketFlow</title>
+    <!-- Link para o arquivo CSS principal do aplicativo -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- NOVO: Link para o arquivo CSS de formatação de PDF do ingresso (para representação HTML) -->
+    <link rel="stylesheet" href="ticket-pdf.css">
+    <!-- Links para fontes externas (Google Fonts) e ícones (Font Awesome) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Script para a biblioteca jsPDF (geração de PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        // Renomeia a variável global jsPDF para fácil acesso
+        window.jsPDF = window.jspdf.jsPDF;
+    </script>
+    <!-- Import Map para carregar módulos ES de CDNs, como o Supabase -->
     <script type="importmap">
     {
       "imports": {
-        "qrcode": "https://cdn.jsdelivr.net/npm/qrcode@1.5.1/+esm",
-        "html5-qrcode": "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/+esm",
-        "jspdf": "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm",
-        "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.0/+esm"
+        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+        "qrious": "https://esm.sh/qrious@4",
+        "qr-scanner": "https://esm.sh/qr-scanner@1.4.2",
+        "chart.js": "https://esm.sh/chart.js@4"
       }
     }
     </script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favcon.png">
+    <!-- NOVO: html5-qrcode -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
-    <!-- Login Screen -->
-    <div id="loginScreen" class="container-fluid vh-100 d-flex justify-content-center align-items-center">
-        <div class="card login-card shadow">
-            <div class="card-body">
-                <h2 class="text-center mb-4"><i class="fas fa-ticket-alt"></i> DC TicketFlow</h2>
-                <form id="loginForm">
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Senha de Acesso</label>
-                        <input type="password" class="form-control" id="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Entrar</button>
-                </form>
-                <div id="loginError" class="alert alert-danger mt-3 d-none">
-                    Senha incorreta. Tente novamente.
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Telas de Login/Registro serão adicionadas dinamicamente -->
+    
+    <div id="app">
+        <!-- ============================================== -->
+        <!-- OVERLAYS E MENSAGENS DE FEEDBACK VISUAL -->
+        <!-- ============================================== -->
 
-    <!-- Main Application (hidden until login) -->
-    <div id="appContainer" class="d-none">
-        <!-- Navigation -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="#"><i class="fas fa-ticket-alt"></i> DC TicketFlow</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="salesForm">
-                                <i class="fas fa-shopping-cart"></i> Vender Ingressos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="salesPanel">
-                                <i class="fas fa-chart-pie"></i> Painel de Vendas & Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="checkInDashboard">
-                                <i class="fas fa-check-circle"></i> Check-in
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="settingsSection">
-                                <i class="fas fa-cog"></i> Configurações
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="complimentaryTickets">
-                                <i class="fas fa-gift"></i> Cortesias
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="eventsSection">
-                                <i class="fas fa-calendar-alt"></i> Eventos
-                            </a>
-                        </li>
-                    </ul>
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Sair</a>
-                        </li>
-                    </ul>
-                </div>
+        <!-- Overlay de Navegação para mobile (aparece quando o menu lateral está aberto) -->
+        <div class="nav-overlay" id="nav-overlay"></div>
+
+        <!-- Overlay de Carregamento (exibido durante operações assíncronas) -->
+        <div class="loading-overlay" id="loading">
+            <div class="spinner"></div>
+            <p>CARREGANDO!</p>
+        </div>
+
+        <!-- Mensagem de Sucesso (feedback visual para operações bem-sucedidas) -->
+        <div class="message success" id="success-message">
+            <i class="fas fa-check-circle"></i>
+            <p>SUCESSO!</p>
+        </div>
+
+        <!-- Mensagem de Erro (feedback visual para operações com falha) -->
+        <div class="message error" id="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>ERRO!</p>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- CABEÇALHO DA APLICAÇÃO -->
+        <!-- ============================================== -->
+        <header class="header">
+            <!-- Botão de Hambúrguer para navegação mobile -->
+            <button class="hamburger-btn" id="hamburger-btn">
+                <i class="fas fa-bars"></i>
+            </button>
+            <!-- Contêiner do Logo e Título do Aplicativo -->
+            <div class="logo-container">
+                 <img id="app-logo" alt="TicketFlow Logo">
+                <h1 id="app-title">TICKETFLOW</h1>
             </div>
+            <!-- Espaçador para alinhar o título quando o hambúrguer não está visível (desktop) -->
+            <div class="header-spacer"></div>
+        </header>
+
+        <!-- ============================================== -->
+        <!-- NAVEGAÇÃO PRINCIPAL (MENU DE BOTÕES PARA TELAS) -->
+        <!-- ============================================== -->
+        <nav class="nav" id="main-nav">
+            <button class="nav-btn active" data-screen="create-event">
+                <i class="fas fa-plus"></i>
+                <span>CRIAR EVENTO</span>
+            </button>
+            <button class="nav-btn" data-screen="register-sale">
+                <i class="fas fa-ticket-alt"></i>
+                <span>REGISTRAR VENDA</span>
+            </button>
+            <button class="nav-btn" data-screen="sales-management">
+                <i class="fas fa-chart-line"></i>
+                <span>GESTÃO</span>
+            </button>
+            <button class="nav-btn" data-screen="courtesies">
+                <i class="fas fa-gift"></i>
+                <span>CORTESIAS</span>
+            </button>
+            <button class="nav-btn" data-screen="check-in">
+                <i class="fas fa-user-check"></i>
+                <span>CHECK-IN</span>
+            </button>
+            <button class="nav-btn" data-screen="history">
+                <i class="fas fa-history"></i>
+                <span>HISTÓRICO</span>
+            </button>
+            <button class="nav-btn" data-screen="settings">
+                <i class="fas fa-cog"></i>
+                <span>CONFIGURAÇÕES</span>
+            </button>
         </nav>
 
-        <!-- Complimentary Tickets Section -->
-        <section id="complimentaryTickets" class="app-section container py-4 d-none">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3><i class="fas fa-gift"></i> Cortesias</h3>
-                </div>
-                <div class="card-body">
-                    <form id="complimentaryTicketForm" class="mb-4">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="complimentaryParticipantName" class="form-label">Nome do Participante</label>
-                                <input type="text" class="form-control" id="complimentaryParticipantName" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="complimentaryTicketType" class="form-label">Tipo de Cortesia</label>
-                                <select class="form-select" id="complimentaryTicketType" required>
-                                    <option value="" disabled selected>Selecione o tipo</option>
-                                    <option value="Divulgação">Divulgação</option>
-                                    <option value="Amigos">Amigos</option>
-                                    <option value="Outros">Outros</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="fas fa-plus"></i> Adicionar Cortesia
-                        </button>
-                    </form>
+        <!-- ============================================== -->
+        <!-- TELAS DO APLICATIVO -->
+        <!-- ============================================== -->
 
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Ações</th>
-                                    <th>Nome</th>
-                                    <th>Tipo de Cortesia</th>
-                                    <th>Data de Registro</th>
-                                </tr>
-                            </thead>
-                            <tbody id="complimentaryTicketsBody">
-                                <!-- Complimentary tickets will be dynamically loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div id="noComplimentaryTicketsMessage" class="alert alert-info text-center d-none">
-                        Nenhuma cortesia adicionada ainda.
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="eventsSection" class="app-section container py-4 d-none">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3><i class="fas fa-calendar-alt"></i> Eventos</h3>
-                </div>
-                <div class="card-body">
-                    <div id="eventsList" class="list-group">
-                        <!-- Events will be dynamically added here -->
-                    </div>
-                    <div id="noEventsMessage" class="alert alert-info text-center mt-3 d-none">
-                        Nenhum evento registrado ainda.
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Toast Notifications -->
-        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-            <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header">
-                    <strong class="me-auto" id="toastTitle">Notificação</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body" id="toastMessage"></div>
-            </div>
-        </div>
-
-        <!-- Sales Form Section -->
-        <section id="salesForm" class="app-section container py-4">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3><i class="fas fa-shopping-cart"></i> Venda de Ingressos</h3>
-                </div>
-                <div class="card-body">
-                    <form id="ticketSalesForm">
-                        <div class="mb-3">
-                            <label for="ticketQuantity" class="form-label">Quantidade de Ingressos</label>
-                            <select class="form-select" id="ticketQuantity" required>
-                                <option value="" selected disabled>Selecione a quantidade</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
-                            </select>
-                        </div>
-                        
-                        <div id="participantsContainer">
-                            <!-- Dynamic participant fields will be added here -->
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="paymentMethod" class="form-label">Forma de Pagamento</label>
-                            <select class="form-select" id="paymentMethod" required>
-                                <option value="" selected disabled>Selecione a forma de pagamento</option>
-                                <option value="PIX">PIX</option>
-                                <option value="Cartão">Cartão</option>
-                                <option value="Dinheiro">Dinheiro</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="totalAmount" class="form-label">Valor Total (R$)</label>
-                            <input type="number" class="form-control" id="totalAmount" step="0.01" required>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="fas fa-save"></i> Salvar Venda
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </section>
-
-        <!-- Sales Panel Section with Dashboard integrated -->
-        <section id="salesPanel" class="app-section container py-4 d-none">
-            <!-- Dashboard Cards -->
-            <div class="row mb-4">
-                <div class="col-md-4 mb-3">
-                    <div class="card bg-primary text-white shadow">
-                        <div class="card-body">
-                            <h5 class="card-title">Total em Vendas</h5>
-                            <h2 class="card-text" id="totalSalesAmount">R$ 0,00</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card bg-success text-white shadow">
-                        <div class="card-body">
-                            <h5 class="card-title">Ingressos Vendidos</h5>
-                            <h2 class="card-text" id="totalTicketsSold">0</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card bg-info text-white shadow">
-                        <div class="card-body">
-                            <h5 class="card-title">Ticket Médio</h5>
-                            <h2 class="card-text" id="averageTicketPrice">R$ 0,00</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3><i class="fas fa-list"></i> Painel de Vendas</h3>
-                </div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="searchSales" placeholder="Buscar por nome ou código...">
-                            <button class="btn btn-outline-secondary" type="button" id="searchButton">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            <button class="btn btn-outline-primary" type="button" id="exportParticipantsPdfBtn">
-                                <i class="fas fa-file-pdf"></i> Exportar Lista
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Ações</th>
-                                    <th>Participantes</th>
-                                    <th>Status</th>
-                                    <th>Qtd</th>
-                                    <th>Valor</th>
-                                    <th>Pagamento</th>
-                                    <th>Data</th>
-                                    <th>ID</th>
-                                </tr>
-                            </thead>
-                            <tbody id="salesTableBody">
-                                <!-- Sales data will be dynamically loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div id="salesLoading" class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Carregando...</span>
-                        </div>
-                        <p class="mt-2">Carregando dados...</p>
-                    </div>
-                    
-                    <div id="noSalesMessage" class="alert alert-info d-none">
-                        Nenhuma venda encontrada.
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Check-in Dashboard Section -->
-        <section id="checkInDashboard" class="app-section container py-4 d-none">
-            <div class="row">
-                <!-- Statistics Cards -->
-                <div class="col-md-12 mb-4">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <div class="card bg-primary text-white shadow">
-                                <div class="card-body">
-                                    <h5 class="card-title">Total de Participantes</h5>
-                                    <h2 class="card-text" id="totalParticipants">0</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card bg-success text-white shadow">
-                                <div class="card-body">
-                                    <h5 class="card-title">Check-ins Concluídos</h5>
-                                    <h2 class="card-text" id="completedCheckins">0</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card bg-warning text-dark shadow">
-                                <div class="card-body">
-                                    <h5 class="card-title">Check-ins Pendentes</h5>
-                                    <h2 class="card-text" id="pendingCheckins">0</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="card bg-info text-white shadow">
-                                <div class="card-body">
-                                    <h5 class="card-title">Progresso</h5>
-                                    <h2 class="card-text" id="checkinPercentage">0%</h2>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- SCREEN: CRIAR EVENTO -->
+        <div class="screen active" id="create-event">
+            <div class="container">
+                <h2>CRIAR EVENTO</h2>
                 
-                <!-- QR Code Scanner -->
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow">
-                        <div class="card-header bg-primary text-white">
-                            <h3><i class="fas fa-qrcode"></i> Leitor de QR Code</h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="qrReader" class="mb-3"></div>
-                            <button class="btn btn-primary w-100 mb-3" id="startScanBtn">
-                                <i class="fas fa-camera"></i> Iniciar Escaneamento
-                            </button>
-                            <div class="mb-3">
-                                <label for="manualCode" class="form-label">Busca Manual</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="manualCode" placeholder="Digite o nome ou código...">
-                                    <button class="btn btn-outline-secondary" type="button" id="searchManualBtn">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                <form id="create-event-form">
+                    <div class="form-group">
+                        <label for="event-name">NOME DO EVENTO</label>
+                        <input type="text" id="event-name" placeholder="Digite o nome do evento" required>
                     </div>
-                </div>
-                
-                <!-- Participant Check-in Status -->
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow">
-                        <div class="card-header bg-primary text-white">
-                            <h3><i class="fas fa-user-check"></i> Status do Participante</h3>
-                        </div>
-                        <div class="card-body">
-                            <div id="noParticipantSelected" class="text-center py-5">
-                                <i class="fas fa-user-slash fa-5x text-muted"></i>
-                                <p class="mt-3">Escaneie um QR Code ou busque um participante para ver o status.</p>
-                            </div>
-                            
-                            <div id="participantInfo" class="d-none">
-                                <div class="text-center mb-4">
-                                    <div id="statusIcon" class="mb-2">
-                                        <!-- Status icon will be displayed here -->
-                                    </div>
-                                    <h2 id="participantName"></h2>
-                                    <p class="lead" id="participantStatus"></p>
-                                </div>
-                                
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-success" id="validateBtn">
-                                        <i class="fas fa-check-circle"></i> Validar Entrada
-                                    </button>
-                                    <button class="btn btn-warning" id="resetStatusBtn">
-                                        <i class="fas fa-undo"></i> Resetar Status
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Recent Check-ins -->
-                <div class="col-md-12 mb-4">
-                    <div class="card shadow">
-                        <div class="card-header bg-primary text-white">
-                            <h3><i class="fas fa-history"></i> Check-ins Recentes</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Horário</th>
-                                            <th>Nome</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="recentCheckinsBody">
-                                        <!-- Recent check-ins will be loaded here -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Settings Section -->
-        <section id="settingsSection" class="app-section container py-4 d-none">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3><i class="fas fa-cog"></i> Configurações</h3>
-                </div>
-                <div class="card-body">
-                    <form id="settingsForm">
-                        <div class="mb-3">
-                            <label for="eventName" class="form-label">Nome do Evento</label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                id="eventName" 
-                                placeholder="Digite o nome do evento" 
-                                required
-                            >
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="ticketPrice" class="form-label">Valor do Ingresso (R$)</label>
-                            <input 
-                                type="number" 
-                                class="form-control" 
-                                id="ticketPrice" 
-                                step="0.01" 
-                                min="0" 
-                                placeholder="Valor do ingresso" 
-                                required
-                            >
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="eventDate" class="form-label">Data do Evento</label>
-                            <input 
-                                type="date" 
-                                class="form-control" 
-                                id="eventDate" 
-                                required
-                            >
-                        </div>
-                        
-                        <button type="submit" class="btn btn-success w-100">
-                            <i class="fas fa-save"></i> Salvar Configurações
-                        </button>
-                        <button type="button" class="btn btn-danger w-100 mt-3" id="endEventBtn">
-                            <i class="fas fa-times-circle"></i> Finalizar Evento
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </section>
 
-        <!-- Sale Detail Modal -->
-        <div class="modal fade" id="saleDetailModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">Detalhes da Venda</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="form-group">
+                        <label for="event-location">LOCAL DO EVENTO</label>
+                        <input type="text" id="event-location" placeholder="Ex: Clube X, Parque Y" required>
                     </div>
-                    <div class="modal-body">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <p><strong>ID:</strong> <span id="modalSaleId"></span></p>
-                                <p><strong>Data:</strong> <span id="modalSaleDate"></span></p>
-                                <p><strong>Pagamento:</strong> <span id="modalPaymentMethod"></span></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Quantidade:</strong> <span id="modalTicketQuantity"></span></p>
-                                <p><strong>Valor Total:</strong> R$ <span id="modalTotalAmount"></span></p>
-                            </div>
-                        </div>
-                        
-                        <h5>Participantes</h5>
-                        <div id="modalParticipantsList" class="mb-3">
-                            <!-- Participants will be listed here -->
+
+                    <div class="form-group">
+                        <label>DATA • HORA • VALOR</label>
+                        <div class="date-time-group" style="align-items:center; gap:12px;">
+                            <input type="date" id="event-date" required>
+                            <input type="time" id="event-time" required>
+                            <input type="text" id="ticket-price" class="input-medium money-input" placeholder="0,00" required inputmode="decimal" autocomplete="off" style="max-width:180px; text-align:right;">
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-danger" id="modalDeleteBtn">
-                            <i class="fas fa-trash"></i> Excluir Venda
+
+                    <div class="form-group" id="flyer-group">
+                        <label>Flyer do Evento</label>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;width:100%;">
+                            <button type="button" id="select-existing-flyer-btn" class="btn btn-secondary btn-small" style="flex:1;min-width:220px;display:inline-flex;align-items:center;justify-content:center;">
+                                <i class="fas fa-images"></i> SELECIONAR IMAGEM EXISTENTE
+                            </button>
+                            <label class="btn btn-secondary btn-small" style="flex:1;min-width:220px;display:inline-flex;align-items:center;justify-content:center;margin:0;">
+                                <i class="fas fa-upload"></i> FAZER UPLOAD DE IMAGEM
+                                <input type="file" id="upload-flyer-input" accept=".jpg,.jpeg,.png,.webp" style="display:none;">
+                            </label>
+                        </div>
+                        <div id="flyer-preview" style="margin-top:12px;display:none;">
+                            <img id="flyer-preview-img" alt="Preview do flyer" style="max-width:100%;border-radius:8px;border:1px solid var(--border-color);" />
+                        </div>
+                        <!-- Hidden fallback input kept for compatibility, but creation will use state.pendingFlyerUrl -->
+                        <input type="hidden" id="event-flyer-url" value="">
+                    </div>
+
+                    <!-- Modal simples para seleção de arquivos existentes -->
+                    <div class="modal" id="select-flyer-modal" data-outside-close="true">
+                        <div class="modal-content" style="max-width:760px;">
+                            <span class="close-btn" id="close-select-flyer-modal">&times;</span>
+                            <h3>SELECIONAR IMAGEM EXISTENTE</h3>
+                            <div id="existing-flyers-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px; margin-top:12px; max-height:50vh; overflow:auto;">
+                                <!-- imagens listadas dinamicamente -->
+                            </div>
+                            <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+                                <button type="button" class="btn btn-secondary" id="cancel-select-flyer">CANCELAR</button>
+                                <button type="button" class="btn btn-primary" id="confirm-select-flyer">SELECIONAR</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="button-group" style="display:flex;gap:12px;">
+                        <button type="button" class="btn btn-primary" id="create-publish-event-btn">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            PUBLICAR EVENTO
                         </button>
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-secondary" id="finalize-event" disabled>
+                            <i class="fas fa-flag-checkered"></i>
+                            ENCERRAR VENDAS
+                        </button>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- QR Code Modal -->
-        <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title">QR Code do Participante</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </form>
+
+                <!-- Exibe informações do evento ativo, se houver -->
+                <div class="active-event" id="active-event" style="display: none;">
+                    <h3>EVENTO ATIVO</h3>
+                    <div class="event-details-list">
+                        <div class="detail-item">
+                            <i class="fas fa-tag"></i>
+                            <div>
+                                <span class="detail-label">NOME:</span>
+                                <span id="active-event-name" class="detail-value"></span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <span class="detail-label">LOCAL:</span>
+                                <span id="active-event-location" class="detail-value"></span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-alt"></i>
+                            <div>
+                                <span class="detail-label">DATA E HORA:</span>
+                                <span id="active-event-date-time" class="detail-value"></span>
+                            </div>
+                        </div>
+                        <div class="detail-item price-item">
+                            <i class="fas fa-dollar-sign"></i>
+                            <div>
+                                <span class="detail-label">VALOR:</span>
+                                <span class="detail-value">R$ <span id="active-event-price"></span></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="modal-body text-center">
-                        <h4 id="qrParticipantName"></h4>
-                        <div id="qrCodeContainer" class="my-4 d-flex justify-content-center"></div>
-                        <p class="small text-muted">Este QR Code é único e pessoal. Não compartilhe.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                    </div>
+                    <button class="btn btn-secondary btn-small" id="edit-ticket-price-btn" style="margin-top: var(--spacing-md); width: 100%;">
+                        <i class="fas fa-edit"></i>
+                        EDITAR VALOR DO INGRESSO
+                    </button>
                 </div>
             </div>
         </div>
 
+        <!-- SCREEN: REGISTRAR VENDA -->
+        <div class="screen" id="register-sale">
+            <div class="container">
+                <h2>REGISTRAR VENDA</h2>
+                
+                <!-- Mensagem exibida quando não há evento ativo -->
+                <div class="no-event" id="no-event-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>NENHUM EVENTO ATIVO</p>
+                    <p>CRIE UM EVENTO PRIMEIRO</p>
+                </div>
+
+                <form id="register-sale-form" style="display: none;">
+                    <div class="form-group">
+                        <label>QUANTIDADE DE INGRESSOS</label>
+                        <div class="quantity-selector">
+                            <button type="button" class="qty-btn" id="qty-minus">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="qty-display" id="qty-display">1</span>
+                            <button type="button" class="qty-btn" id="qty-plus">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Contêiner para os campos de nome dos participantes (gerados via JS) -->
+                    <div class="participants-container" id="participants-container">
+                        <div class="form-group">
+                            <label for="participant-1">PARTICIPANTE 1</label>
+                            <input type="text" id="participant-1" placeholder="Nome do participante" required>
+                        </div>
+                    </div>
+
+                    <!-- Exibição do subtotal da venda -->
+                    <div class="subtotal">
+                        <h3>SUBTOTAL: R$ <span id="subtotal">0,00</span></h3>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        REGISTRAR VENDA
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- SCREEN: GESTÃO DE VENDAS -->
+        <div class="screen" id="sales-management">
+             <div class="container">
+                <h2>GESTÃO DE VENDAS</h2>
+                <div id="sales-management-content" style="display: none;">
+                    <!-- Dashboard com métricas de vendas -->
+                    <div class="dashboard">
+                        <div class="metric">
+                            <i class="fas fa-dollar-sign metric-icon"></i>
+                            <p>RECEITA TOTAL</p>
+                            <h3 id="sm-revenue">R$ 0,00</h3>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-ticket-alt metric-icon"></i>
+                            <p>INGRESSOS VENDIDOS</p>
+                            <h3 id="sm-tickets-sold">0</h3>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-chart-bar metric-icon"></i>
+                            <p>TICKET MÉDIO</p>
+                            <h3 id="sm-avg-ticket">R$ 0,00</h3>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-clock metric-icon"></i>
+                            <p>AGUARDANDO APROVAÇÃO</p>
+                            <h3 id="sm-pending">0</h3>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn btn-secondary" id="generate-sales-pdf">
+                            <i class="fas fa-file-pdf"></i> GERAR LISTA PDF
+                        </button>
+                    </div>
+                    <!-- Campo de busca para participantes ou vendas (sem ícone de lupa) -->
+                    <div class="search-container" style="margin-top: 24px;">
+                        <input type="text" id="sales-search" placeholder="BUSCAR PARTICIPANTES OU AQUISIÇÕES">
+                    </div>
+                    <!-- Contêiner para a lista de vendas (preenchida via JS) -->
+                    <div class="list-container" id="sales-list">
+                        <!-- Sales will be listed here -->
+                    </div>
+                </div>
+                <!-- Mensagem exibida quando não há evento ativo -->
+                <div class="no-event" id="no-event-message-sm">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>NENHUM EVENTO ATIVO</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: CORTESIAS -->
+        <div class="screen" id="courtesies">
+            <div class="container">
+                <h2>CORTESIAS</h2>
+                <div id="courtesies-content" style="display: none;">
+                    <div class="dashboard">
+                        <div class="metric">
+                            <i class="fas fa-gift metric-icon"></i>
+                            <p>TOTAL DE CORTESIAS</p>
+                            <h3 id="ct-total-courtesies">0</h3>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-user-check metric-icon"></i>
+                            <p>CHECK-INS (CORTESIAS)</p>
+                            <h3 id="ct-checked-in-courtesies">0</h3>
+                        </div>
+                    </div>
+                    <form id="courtesy-form">
+                        <div class="form-group">
+                            <label for="courtesy-name">NOME DO PARTICIPANTE</label>
+                            <input type="text" id="courtesy-name" placeholder="Digite o nome" required>
+                        </div>
+                        <!-- Tipo removido: não é mais necessário definir tipo de cortesia -->
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button type="submit" class="btn btn-primary" style="flex:1;">
+                                <i class="fas fa-plus"></i> REGISTRAR CORTESIA
+                            </button>
+                            <button type="button" id="batch-courtesy-btn" class="btn btn-secondary" style="flex:1;">
+                                <i class="fas fa-clipboard-list"></i> REGISTRAR EM LOTE
+                            </button>
+                        </div>
+                    </form>
+                    <div class="button-group" style="margin-top: 24px;">
+                        <button class="btn btn-secondary" id="generate-courtesies-pdf">
+                            <i class="fas fa-file-pdf"></i> GERAR LISTA PDF
+                        </button>
+                    </div>
+
+                    <!-- Modal: Registrar Cortesias em Lote -->
+                    <div class="modal" id="batch-courtesy-modal" data-outside-close="true">
+                        <div class="modal-content" style="max-width:640px;">
+                            <span class="close-btn" id="close-batch-courtesy-modal">&times;</span>
+                            <h3>REGISTRAR CORTESIAS EM LOTE</h3>
+                            <p>Cole uma lista de nomes (um por linha). Cada linha será registrada como uma cortesia.</p>
+                            <div class="form-group">
+                                <label for="batch-courtesy-textarea">NOMES (1 POR LINHA)</label>
+                                <textarea id="batch-courtesy-textarea" rows="8" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border-color);" placeholder="Ex:\nJoão Silva\nMaria Pereira\nCarlos Souza"></textarea>
+                                <div class="error-message" id="batch-courtesy-error" style="display:none;"></div>
+                            </div>
+                            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+                                <button type="button" class="btn btn-secondary" id="cancel-batch-courtesy">CANCELAR</button>
+                                <button type="button" class="btn btn-primary" id="submit-batch-courtesy">REGISTRAR TODOS</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Contêiner para a lista de cortesias (preenchida via JS) -->
+                    <div class="list-container" id="courtesies-list">
+                        <!-- Courtesies will be listed here -->
+                    </div>
+                </div>
+                <!-- Mensagem exibida quando não há evento ativo -->
+                 <div class="no-event" id="no-event-message-courtesy">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>NENHUM EVENTO ATIVO</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: CHECK-IN -->
+        <div class="screen" id="check-in">
+            <div class="container">
+                <h2>CHECK-IN</h2>
+                <div id="check-in-content" style="display: none;">
+                    <!-- Dashboard com métricas de check-in -->
+                    <div class="dashboard">
+                        <div class="metric">
+                            <i class="fas fa-users metric-icon"></i>
+                            <p>TOTAL DE PARTICIPANTES</p>
+                            <h3 id="ci-total">0</h3>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-user-check metric-icon"></i>
+                            <p>CHECK-INS REALIZADOS</p>
+                            <h3 id="ci-checked-in">0</h3>
+                        </div>
+                        <div class="metric">
+                            <i class="fas fa-user-clock metric-icon"></i>
+                            <p>PENDENTES</p>
+                            <h3 id="ci-pending">0</h3>
+                        </div>
+                    </div>
+                    
+                    <!-- NOVO: Botão para iniciar o scanner QR -->
+                    <div class="qr-scanner-section" style="text-align: center; margin: var(--spacing-lg) 0;">
+                        <button class="btn btn-primary" id="qr-scan-btn">
+                            <i class="fas fa-qrcode"></i>
+                            ESCANEAR QR CODE
+                        </button>
+                    </div>
+
+                    <!-- NOVO: área de mensagens do check-in -->
+                    <div id="checkin-alert" class="checkin-alert" aria-live="polite"></div>
+
+                    <div class="form-group" style="margin-top: 24px;">
+                        <input type="text" id="checkin-search" placeholder="BUSCAR POR NOME OU ID DO INGRESSO/AQUISIÇÃO">
+                    </div>
+
+                    <!-- NOVO: Filtro alfabético -->
+                    <div class="alphabet-filter" style="margin-top: 16px;">
+                        <div class="filter-label">FILTRAR POR LETRA:</div>
+                        <div class="letter-filter-container">
+                            <button class="letter-filter-btn active" data-letter="ALL">TODOS</button>
+                            <button class="letter-filter-btn" data-letter="A">A</button>
+                            <button class="letter-filter-btn" data-letter="B">B</button>
+                            <button class="letter-filter-btn" data-letter="C">C</button>
+                            <button class="letter-filter-btn" data-letter="D">D</button>
+                            <button class="letter-filter-btn" data-letter="E">E</button>
+                            <button class="letter-filter-btn" data-letter="F">F</button>
+                            <button class="letter-filter-btn" data-letter="G">G</button>
+                            <button class="letter-filter-btn" data-letter="H">H</button>
+                            <button class="letter-filter-btn" data-letter="I">I</button>
+                            <button class="letter-filter-btn" data-letter="J">J</button>
+                            <button class="letter-filter-btn" data-letter="K">K</button>
+                            <button class="letter-filter-btn" data-letter="L">L</button>
+                            <button class="letter-filter-btn" data-letter="M">M</button>
+                            <button class="letter-filter-btn" data-letter="N">N</button>
+                            <button class="letter-filter-btn" data-letter="O">O</button>
+                            <button class="letter-filter-btn" data-letter="P">P</button>
+                            <button class="letter-filter-btn" data-letter="Q">Q</button>
+                            <button class="letter-filter-btn" data-letter="R">R</button>
+                            <button class="letter-filter-btn" data-letter="S">S</button>
+                            <button class="letter-filter-btn" data-letter="T">T</button>
+                            <button class="letter-filter-btn" data-letter="U">U</button>
+                            <button class="letter-filter-btn" data-letter="V">V</button>
+                            <button class="letter-filter-btn" data-letter="W">W</button>
+                            <button class="letter-filter-btn" data-letter="X">X</button>
+                            <button class="letter-filter-btn" data-letter="Y">Y</button>
+                            <button class="letter-filter-btn" data-letter="Z">Z</button>
+                        </div>
+                    </div>
+
+                    <!-- Contêiner para a lista de participantes para check-in (preenchida via JS) -->
+                    <div class="list-container" id="check-in-list">
+                        <!-- Participants will be listed here for check-in -->
+                    </div>
+                </div>
+                <!-- Mensagem exibida quando não há evento ativo -->
+                <div class="no-event" id="no-event-message-checkin">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>NENHUM EVENTO ATIVO</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: HISTÓRICO DE EVENTOS -->
+        <div class="screen" id="history">
+            <div class="container">
+                <h2>HISTÓRICO DE EVENTOS</h2>
+                <!-- Contêiner para a lista de eventos históricos (preenchida via JS) -->
+                <div class="list-container" id="history-list">
+                    <!-- History will be listed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- SCREEN: CONFIGURAÇÕES -->
+        <div class="screen" id="settings">
+            <div class="container">
+                <h2>CONFIGURAÇÕES</h2>
+                
+                <!-- Abas de Navegação das Configurações -->
+                <div class="tabs-nav">
+                    <button class="tab-btn active" data-tab="general-settings">
+                        <i class="fas fa-cogs"></i>
+                        <span>CONFIGURAÇÕES</span>
+                    </button>
+                    <button class="tab-btn" data-tab="user-management">
+                        <i class="fas fa-users"></i>
+                        <span>CADASTRO</span>
+                    </button>
+                    <button class="tab-btn" data-tab="system-logs">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>LOGS DO SISTEMA</span>
+                    </button>
+                </div>
+
+                <!-- Conteúdo das Abas -->
+                <div class="tab-content-container">
+                    <!-- ABA: CONFIGURAÇÕES GERAIS -->
+                    <div class="tab-panel active" id="general-settings">
+                        <!-- Grupo de configurações: Tema de Cores -->
+                        <div class="settings-group">
+                            <h3>TEMA DE CORES</h3>
+                            <div class="theme-options">
+                                <!-- Opções de tema com radio buttons -->
+                                <label class="theme-option">
+                                    <input type="radio" name="theme" value="indigo" checked>
+                                    <span class="theme-preview indigo"></span>
+                                    <span>INDIGO</span>
+                                </label>
+                                <label class="theme-option">
+                                    <input type="radio" name="theme" value="emerald">
+                                    <span class="theme-preview emerald"></span>
+                                    <span>ESMERALDA</span>
+                                </label>
+                                <label class="theme-option">
+                                    <input type="radio" name="theme" value="amber">
+                                    <span class="theme-preview amber"></span>
+                                    <span>ÂMBAR</span>
+                                </label>
+                                <label class="theme-option">
+                                    <input type="radio" name="theme" value="red">
+                                    <span class="theme-preview red"></span>
+                                    <span>VERMELHO</span>
+                                </label>
+                                <label class="theme-option">
+                                    <input type="radio" name="theme" value="blue">
+                                    <span class="theme-preview blue"></span>
+                                    <span>AZUL</span>
+                                </label>
+                                <label class="theme-option">
+                                    <input type="radio" name="theme" value="purple">
+                                    <span class="theme-preview purple"></span>
+                                    <span>ROXO</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Grupo de configurações: Configurações do Sistema -->
+                        <div class="settings-group">
+                            <h3>CONFIGURAÇÕES DO SISTEMA</h3>
+                            <div class="setting-item">
+                                <!-- Toggle para encerrar/ativar vendas -->
+                                <label class="switch-label">
+                                    <input type="checkbox" id="sales-enabled-toggle" checked>
+                                    <span class="slider round"></span>
+                                    <span>ENCERRAR VENDAS</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Grupo de configurações: Logo do Aplicativo -->
+                        <div class="settings-group">
+                            <h3>LOGO DO APLICATIVO</h3>
+                            <div class="setting-item">
+                                <p>Insira a URL de uma imagem PNG para usar como logo. A logo substituirá o texto "TICKETFLOW" no cabeçalho.</p>
+                                <input type="text" id="logo-url-input" placeholder="Ex: https://seusite.com/logo.png" style="margin-top: 10px;">
+                                <button class="btn btn-primary btn-small" id="apply-logo-url-btn" style="margin-top: 12px; width: 100%;">
+                                    <i class="fas fa-upload"></i>
+                                    APLICAR LOGO
+                                </button>
+                            </div>
+                            <button class="btn btn-secondary" id="remove-logo" style="margin-top: 12px; width: 100%;">
+                                <i class="fas fa-trash"></i>
+                                REMOVER LOGO
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ABA: CADASTRO DE USUÁRIOS -->
+                    <div class="tab-panel" id="user-management">
+                        <div class="settings-group">
+                            <h3>CADASTRO DE USUÁRIOS</h3>
+                            <form id="user-registration-form">
+                                <div class="form-group">
+                                    <label for="user-name">NOME DE USUÁRIO</label>
+                                    <input type="text" id="user-name" placeholder="Nome de usuário" required>
+                                    <div class="error-message"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="user-email">E-MAIL</label>
+                                    <input type="email" id="user-email" placeholder="E-mail do usuário" required>
+                                    <div class="error-message"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="user-password">SENHA</label>
+                                    <input type="password" id="user-password" placeholder="Senha do usuário" required>
+                                    <div class="error-message"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="user-role">NÍVEL DE ACESSO</label>
+                                    <select id="user-role" required>
+                                        <option value="check">CHECK (Apenas Check-in)</option>
+                                        <option value="manager">GERENTE (Todos, exceto Configurações)</option>
+                                        <option value="admin">ADMIN (Acesso Total)</option>
+                                    </select>
+                                    <div class="error-message"></div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-user-plus"></i> CADASTRAR USUÁRIO
+                                </button>
+                            </form>
+                            <!-- Contêiner para a lista de usuários registrados (preenchida via JS) -->
+                            <div class="list-container" id="users-list" style="margin-top: 20px;">
+                                <!-- Registered users will be listed here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ABA: LOGS DO SISTEMA -->
+                    <div class="tab-panel" id="system-logs">
+                        <div class="settings-group">
+                            <h3>LOGS DO SISTEMA</h3>
+                            <div class="setting-item">
+                                <p>Aqui são registrados os erros e falhas do sistema para diagnóstico. Cada registro é um "ticket" com detalhes e uma possível solução.</p>
+                            </div>
+                            <button class="btn btn-secondary" id="clear-logs-btn" style="margin-top: 12px; width: 100%;">
+                                <i class="fas fa-trash"></i>
+                                LIMPAR LOGS
+                            </button>
+                            <!-- Contêiner para a lista de logs (preenchida via JS) -->
+                            <div class="list-container" id="logs-list" style="margin-top: 20px;">
+                                <!-- Logs will be listed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- MODAIS (POP-UPS) -->
+        <!-- ============================================== -->
+
+        <!-- Modal para Edição de Nomes de Participantes em uma Venda -->
+        <div class="modal" id="edit-sale-modal">
+            <div class="modal-content">
+                <span class="close-btn" id="close-edit-modal">&times;</span>
+                <h3>EDITAR PARTICIPANTES</h3>
+                <form id="edit-sale-form">
+                    <input type="hidden" id="edit-sale-id">
+                    <div id="edit-participants-container"></div>
+                    <button type="submit" class="btn btn-primary">SALVAR ALTERAÇÕES</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação (usado para exclusões, finalização, etc.) -->
+        <div class="modal" id="confirm-modal">
+            <div class="modal-content">
+                <h3>CONFIRMAÇÃO</h3>
+                <p id="confirm-modal-text"></p>
+                <div class="button-group">
+                    <button class="btn btn-primary" id="confirm-modal-yes">SIM</button>
+                    <button class="btn btn-secondary" id="confirm-modal-no">NÃO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Resumo Financeiro (para eventos históricos) -->
+        <div class="modal" id="financial-modal">
+            <div class="modal-content">
+                <span class="close-btn" id="close-financial-modal">&times;</span>
+                <h3>RELATÓRIO FINANCEIRO</h3>
+                
+                <!-- Abas de Navegação para o Relatório Financeiro -->
+                <div class="tabs-nav" style="margin-bottom: var(--spacing-lg);">
+                    <button class="tab-btn active" data-tab="financial-event-data">
+                        <i class="fas fa-chart-line"></i>
+                        <span>DADOS DO EVENTO</span>
+                    </button>
+                    <button class="tab-btn" data-tab="financial-bar-data">
+                        <i class="fas fa-beer"></i>
+                        <span>DADOS DO BAR</span>
+                    </button>
+                    <button class="tab-btn" data-tab="financial-observations">
+                        <i class="fas fa-clipboard"></i>
+                        <span>OBSERVAÇÕES</span>
+                    </button>
+                </div>
+
+                <form id="financial-form">
+                    <input type="hidden" id="financial-event-id">
+
+                    <!-- Conteúdo das Abas do Relatório Financeiro -->
+                    <div class="tab-content-container">
+                        <!-- ABA: DADOS DO EVENTO -->
+                        <div class="tab-panel active" id="financial-event-data">
+                            <div class="settings-group">
+                                <h4 style="color:var(--primary-color);font-size:15px;margin-bottom:15px;">DADOS DO EVENTO</h4>
+
+                                <!-- Quantidade de ingressos -->
+                                <div class="form-group">
+                                    <label for="qty-box-office">INGRESSOS VENDIDOS (BILHETERIA)</label>
+                                    <input type="number" id="qty-box-office" class="input-short" min="0" value="0" inputmode="numeric" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="qty-online">INGRESSOS VENDIDOS (ONLINE)</label>
+                                    <input type="number" id="qty-online" class="input-short" min="0" value="0" inputmode="numeric" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="qty-courtesies">CORTESIAS</label>
+                                    <input type="number" id="qty-courtesies" class="input-short" min="0" value="0" inputmode="numeric" />
+                                </div>
+
+                                <!-- Valores arrecadados -->
+                                <div class="form-group">
+                                    <label for="box-office-sales">VENDAS NA BILHETERIA (R$)</label>
+                                    <input type="text" id="box-office-sales" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="online-sales">VENDAS ONLINE (R$)</label>
+                                    <input type="text" id="online-sales" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                                </div>
+
+                                <!-- Custos do Evento (desmembrados) -->
+                                <h5 style="margin-top:12px;margin-bottom:8px;color:var(--text-primary);font-weight:600;">CUSTOS DO EVENTO</h5>
+                                <div class="form-group">
+                                    <label for="cost-rental">ALUGUEL DO LOCAL (R$)</label>
+                                    <input type="text" id="cost-rental" class="input-medium money-input" placeholder="0,00" inputmode="decimal" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cost-sound">SOM / ILUMINAÇÃO (R$)</label>
+                                    <input type="text" id="cost-sound" class="input-medium money-input" placeholder="0,00" inputmode="decimal" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cost-structure">ESTRUTURA (R$)</label>
+                                    <input type="text" id="cost-structure" class="input-medium money-input" placeholder="0,00" inputmode="decimal" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cost-marketing">MARKETING (R$)</label>
+                                    <input type="text" id="cost-marketing" class="input-medium money-input" placeholder="0,00" inputmode="decimal" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cost-security">SEGURANÇA (R$)</label>
+                                    <input type="text" id="cost-security" class="input-medium money-input" placeholder="0,00" inputmode="decimal" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="staff-cost">EQUIPE (R$)</label>
+                                    <input type="text" id="staff-cost" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                                </div>
+
+                                <!-- Atrações dinâmicas -->
+                                <h5 style="margin-top:12px;margin-bottom:8px;color:var(--text-primary);font-weight:600;">ATRAÇÕES</h5>
+                                <div class="form-group">
+                                    <label for="attractions-count">QUANTIDADE DE ATRAÇÕES</label>
+                                    <input type="number" id="attractions-count" class="input-short" min="0" value="0" inputmode="numeric" />
+                                </div>
+                                <div id="attractions-container" style="margin-top:8px;"></div>
+
+                                <div class="financial-summary" style="margin-top:12px;">
+                                    <div><strong>TOTAL DE INGRESSOS:</strong> <span id="financial-total-tickets">0</span></div>
+                                    <div><strong>TOTAL ARRECADADO:</strong> R$ <span id="financial-total-revenue">0,00</span></div>
+                                    <div><strong>TOTAL DE CUSTOS:</strong> R$ <span id="financial-total-costs">0,00</span></div>
+                                    <div><strong>SALDO FINAL:</strong> <span id="financial-final-balance" style="font-weight:700;">R$ 0,00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- ABA: DADOS DO BAR -->
+                        <div class="tab-panel" id="financial-bar-data">
+                            <div class="settings-group">
+                                <h4 style="color:var(--primary-color);font-size:15px;margin-bottom:15px;">DADOS DO BAR</h4>
+                                <div class="form-group">
+                            <label for="bar-sales">VENDAS DO BAR (R$)</label>
+                            <input type="text" id="bar-sales" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="bar-cost-beverages">CUSTO COM BEBIDAS (R$)</label>
+                            <input type="text" id="bar-cost-beverages" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="bar-cost-ice">GELO (R$)</label>
+                            <input type="text" id="bar-cost-ice" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="bar-cost-disposables">DESCARTÁVEIS (R$)</label>
+                            <input type="text" id="bar-cost-disposables" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="bar-other-expenses">OUTRAS DESPESAS DO BAR (R$)</label>
+                            <input type="text" id="bar-other-expenses" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" value="0">
+                        </div>
+
+                        <div class="financial-summary" style="margin-top:8px;">
+                            <div><strong>TOTAL DE CUSTOS DO BAR:</strong> R$ <span id="financial-total-bar-costs">0,00</span></div>
+                            <div style="margin-top:6px;"><strong>LUCRO/PREJUÍZO DO BAR:</strong> <span id="final-balance-bar" style="font-weight:700;color:var(--text-primary);">R$ 0,00</span></div>
+                            <div style="margin-top:6px;"><strong>TICKET MÉDIO DE CONSUMO:</strong> <span id="financial-ticket-average">—</span></div>
+                        </div>
+                            </div>
+                        </div>
+
+                        <!-- ABA: OBSERVAÇÕES -->
+                        <div class="tab-panel" id="financial-observations">
+                            <div class="settings-group">
+                                <h4 style="color:var(--primary-color);font-size:15px;margin-bottom:15px;">OBSERVAÇÕES</h4>
+                                <div class="form-group">
+                                    <label for="observations">OBSERVAÇÕES</label>
+                                    <textarea id="observations" rows="2" style="width:100%;min-height:40px;padding:10px;border-radius:8px;border:1px solid var(--border-color);resize:vertical;"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="margin-top:20px; width:100%;">
+                        <i class="fas fa-save"></i>
+                        SALVAR RELATÓRIO
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Pré-visualização de PDF -->
+        <div class="modal" id="pdf-preview-modal">
+            <div class="modal-content pdf-modal">
+                <span class="close-btn" id="close-pdf-preview">&times;</span>
+                <h3>PRÉ-VISUALIZAÇÃO DO PDF</h3>
+                <div id="pdf-preview-content"></div>
+                <div class="button-group">
+                    <button class="btn btn-primary" id="download-pdf-confirm">
+                        <i class="fas fa-download"></i>
+                        BAIXAR PDF
+                    </button>
+                    <button class="btn btn-secondary" id="cancel-pdf-preview">
+                        CANCELAR
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Edição do Valor do Ingresso -->
+        <div class="modal" id="ticket-price-modal">
+            <div class="modal-content">
+                <span class="close-btn" id="close-price-modal">&times;</span>
+                <h3>EDITAR VALOR DO INGRESSO</h3>
+                <form id="update-price-form">
+                    <div class="form-group">
+                        <label for="new-ticket-price">NOVO VALOR (R$)</label>
+                        <input type="text" id="new-ticket-price" class="input-medium money-input" placeholder="0,00" required inputmode="decimal" autocomplete="off">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        ATUALIZAR VALOR
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- NOVO MODAL: Enviar PDF para WhatsApp -->
+        <div class="modal" id="whatsapp-modal">
+            <div class="modal-content">
+                <span class="close-btn" id="close-whatsapp-modal">&times;</span>
+                <h3>ENVIAR INGRESSOS VIA WHATSAPP</h3>
+                <form id="whatsapp-form">
+                    <input type="hidden" id="whatsapp-sale-id">
+                    <div class="form-group">
+                        <label for="whatsapp-number">NÚMERO DO WHATSAPP</label>
+                        <div class="whatsapp-input-group">
+                            <span class="prefix">+55</span>
+                            <input type="text" id="whatsapp-number" placeholder="(DDD) 9XXXX-XXXX" required pattern="^\(?\d{2}\)?\s?\d{4,5}-\d{4}$">
+                        </div>
+                        <div class="error-message"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> ENVIAR INGRESSOS
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Formulário de Evento Passado (para registrar/editar eventos no histórico) -->
+        <div class="modal" id="past-event-form-modal">
+            <div class="modal-content">
+                <span class="close-btn" id="close-past-event-modal">&times;</span>
+                <h3 id="past-event-modal-title">REGISTRAR EVENTO PASSADO</h3>
+                <form id="past-event-form">
+                    <input type="hidden" id="past-event-id">
+                    <div class="form-group">
+                        <label for="past-event-name">NOME DO EVENTO</label>
+                        <input type="text" id="past-event-name" placeholder="Digite o nome do evento" required>
+                        <div class="error-message"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="past-event-location">LOCAL DO EVENTO</label>
+                        <input type="text" id="past-event-location" placeholder="Ex: Clube X, Parque Y" required>
+                        <div class="error-message"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>DATA E HORA</label>
+                        <div class="date-time-group">
+                            <input type="date" id="past-event-date" required>
+                            <input type="time" id="past-event-time" required>
+                        </div>
+                        <div class="error-message"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="past-event-price">VALOR DO INGRESSO (R$)</label>
+                        <input type="text" id="past-event-price" class="input-medium money-input" placeholder="0,00" inputmode="decimal" autocomplete="off" required>
+                        <div class="error-message"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="past-event-flyer">Flyer do Evento (URL da imagem)</label>
+                        <input type="text" id="past-event-flyer" placeholder="Cole aqui o link da imagem do flyer (1080x1350 ou 1080x1440)" class="input-full" inputmode="url" autocomplete="off">
+                        <div class="error-message"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        SALVAR EVENTO
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- NOVO: Modal do Scanner QR -->
+        <div class="modal qr-scanner-modal" id="qr-scanner-modal">
+            <div class="qr-scanner-container">
+                <button class="qr-scanner-close" id="close-qr-scanner">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="qr-scanner-header">
+                    <h3>ESCANEIE O QR CODE DO INGRESSO</h3>
+                    <p>Posicione o QR code dentro da área destacada</p>
+                </div>
+                <div class="qr-scanner-video-container">
+                    <!-- Substitui <video> por container do html5-qrcode -->
+                    <div id="qr-reader" style="width:100%; height:100%;"></div>
+                    <div id="qr-inline-alert" class="qr-inline-alert" aria-live="polite"></div>
+                </div>
+                <div class="qr-scanner-footer">
+                    <p>Pressione ESC ou toque no X para fechar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOVO MODAL: Edição de Usuário -->
+        <div class="modal" id="edit-user-modal">
+            <div class="modal-content">
+                <span class="close-btn" id="close-edit-user-modal">&times;</span>
+                <h3>EDITAR USUÁRIO</h3>
+                <form id="edit-user-form">
+                    <input type="hidden" id="edit-user-id">
+                    <div class="form-group">
+                        <label for="edit-user-name">NOME DE USUÁRIO</label>
+                        <input type="text" id="edit-user-name" placeholder="Nome de usuário" required>
+                        <div class="error-message"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-email">E-MAIL</label>
+                        <input type="email" id="edit-user-email" placeholder="E-mail do usuário" required>
+                        <div class="error-message"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-password">NOVA SENHA (DEIXE EM BRANCO PARA NÃO ALTERAR)</label>
+                        <input type="password" id="edit-user-password" placeholder="Nova senha">
+                        <div class="error-message"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-role">NÍVEL DE ACESSO</label>
+                        <select id="edit-user-role" required>
+                            <option value="check">CHECK (Apenas Check-in)</option>
+                            <option value="manager">GERENTE (Todos, exceto Configurações)</option>
+                            <option value="admin">ADMIN (Acesso Total)</option>
+                        </select>
+                        <div class="error-message"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> SALVAR ALTERAÇÕES
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="app.js" type="module"></script>
+    <!-- Script principal do aplicativo (módulo ES) -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>

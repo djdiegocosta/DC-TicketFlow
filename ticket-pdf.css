@@ -1,0 +1,128 @@
+/*
+ * ticket-pdf.css
+ * Este arquivo CSS é destinado à estilização de uma representação HTML de um ingresso,
+ * caso seja necessário exibir ou converter o ingresso de HTML para PDF.
+ *
+ * ATENÇÃO: A funcionalidade atual de geração de PDF (em 'vendas.js') utiliza jsPDF
+ * para desenhar diretamente no canvas do PDF, e, portanto, NÃO interpreta nem aplica
+ * estilos definidos neste arquivo CSS para o LAYOUT FINAL DO PDF.
+ *
+ * As propriedades visuais como cores, tamanhos de fonte, alinhamentos e dimensões
+ * do PDF gerado são controladas diretamente pelas funções da biblioteca jsPDF em 'vendas.js'.
+ *
+ * Este CSS serviria apenas para um cenário onde o ingresso fosse renderizado como
+ * HTML no navegador (ex: para pré-visualização ou impressão direta de uma página web)
+ * antes de uma possível conversão para PDF via uma biblioteca como html2canvas + jsPDF.
+ */
+
+:root {
+    /* Cores específicas para o layout do ticket */
+    --ticket-header-bg: #800080; /* Roxo escuro para o cabeçalho */
+    --ticket-text-light: #ffffff; /* Texto claro no cabeçalho */
+    --ticket-text-dark: #212121; /* Texto escuro para informações */
+    --ticket-info-bg: #f5f5f7; /* Fundo sutil para seções de informação */
+}
+
+.ticket-card {
+    width: 100mm; /* Largura aproximada do PDF gerado */
+    height: 190mm; /* Altura aproximada do PDF gerado */
+    font-family: 'Roboto', sans-serif;
+    box-sizing: border-box;
+    overflow: hidden; /* Garante que o conteúdo não vaze */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: #ffffff; /* Fundo geral branco */
+    border: 1px solid #e0e0e0; /* Apenas para visualização em HTML */
+}
+
+.ticket-header {
+    background-color: var(--ticket-header-bg);
+    color: var(--ticket-text-light);
+    height: 30mm; /* Altura do cabeçalho conforme especificado */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10mm 10mm;
+    text-align: center;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.ticket-logo {
+    max-width: 60mm; /* Largura do logo conforme especificado */
+    max-height: 10mm; /* Ajusta para caber na altura do cabeçalho */
+    object-fit: contain;
+    margin-bottom: 8mm;
+}
+
+.ticket-access-title {
+    font-size: 10pt; /* Tamanho do subtítulo */
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    margin-top: 8mm;
+    margin-bottom: 2mm;
+}
+
+.ticket-event-name {
+    font-size: 14pt; /* Tamanho do nome do evento */
+    font-weight: 700;
+    margin: 4;
+}
+
+.ticket-info {
+    padding: 8mm 5mm; /* Margem superior e laterais */
+    text-align: center;
+    color: var(--ticket-text-dark);
+    font-size: 10pt; /* Tamanho das informações */
+    line-height: 1.5;
+}
+
+.ticket-participant-value {
+    padding: 5mm;
+    text-align: center;
+    color: var(--ticket-text-dark);
+}
+
+.ticket-participant-value .label {
+    font-size: 10pt;
+    font-weight: 700;
+    margin-bottom: 2mm;
+    color: var(--ticket-header-bg); /* Opcional: destaque para labels */
+}
+
+.ticket-participant-value .value {
+    font-size: 13pt; /* Tamanho do nome do participante */
+    font-weight: 600;
+    margin-bottom: 5mm;
+}
+
+.ticket-qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2mm;
+    text-align: center;
+    flex-grow: 0; /* Ocupa o espaço restante */
+}
+
+.ticket-qr-code {
+    width: 40mm; /* Tamanho do QR Code */
+    height: 40mm; /* Tamanho do QR Code */
+    margin-bottom: 30mm; /* Espaço abaixo do QR code */
+}
+
+.ticket-qr-section .label {
+    font-size: 8pt; /* Tamanho dos labels de ID */
+    font-weight: 700;
+    margin-bottom: 1mm;
+    color: var(--ticket-header-bg); /* Opcional: destaque para labels */
+}
+
+.ticket-qr-section .value {
+    font-size: 10pt; /* Tamanho dos valores de ID */
+    font-weight: 700;
+    margin-bottom: 20mm;
+}
