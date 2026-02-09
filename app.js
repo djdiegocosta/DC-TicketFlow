@@ -1026,9 +1026,11 @@ function handleApplyLogoUrl() {
 
 /**
  * @constant EXTERNAL_LOGO_URL
- * @description URL externa única onde a logo será carregada a partir do Supabase Storage.
+ * @description Public (non-signed) URL for the app logo in Supabase public bucket.
+ * Use a public object path so failures in loading do not require signed URLs and won't block rendering.
+ * Note: ensure the bucket/object is publicly readable in Supabase storage settings.
  */
-const EXTERNAL_LOGO_URL = 'https://jrhgzviaebkhhaculpio.supabase.co/storage/v1/object/sign/ticketflow/logo%20ticketflow2.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9mOTc3NTc0NC1lOTBlLTQxOGYtOWIyYy1lMzE3ZTc1Mzg3MjUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ0aWNrZXRmbG93L2xvZ28gdGlja2V0ZmxvdzIucG5nIiwiaWF0IjoxNzcwNjEwODA0LCJleHAiOjE5MjgyOTA4MDR9.HMkjqgcoOGduD-s06cY6aUGbh-YzfniggOGhIHEvJr0';
+const EXTERNAL_LOGO_URL = 'https://jrhgzviaebkhhaculpio.supabase.co/storage/v1/object/public/ticketflow/logo%20ticketflow2.png';
 
 /**
  * @function loadLogo
@@ -1059,35 +1061,50 @@ function loadLogo() {
  * @usedBy `handleApplyLogoUrl`, `loadLogo`
  */
 function applyLogo(logoSource) {
-    // Main header logo
-    if (appLogo) {
-        appLogo.onerror = () => {
-            // If external image fails to load, fall back to text title
-            resetLogoDisplay();
-        };
-        appLogo.src = logoSource; // Works with Base64 or direct URL
-        appLogo.style.display = 'block';
+    // Apply logo defensively: any image load error hides that <img> but never blocks UI or throws.
+    try {
+        // Main header logo
+        if (appLogo) {
+            appLogo.onload = () => {
+                appLogo.style.display = 'block';
+                if (appTitle) appTitle.style.display = 'none';
+                if (removeLogoBtn) removeLogoBtn.style.display = 'inline-block';
+            };
+            appLogo.onerror = () => {
+                // Hide image on error; keep title visible
+                try { appLogo.style.display = 'none'; } catch (e) {}
+                if (appTitle) appTitle.style.display = 'block';
+                if (removeLogoBtn) removeLogoBtn.style.display = 'none';
+            };
+            // Only set src if a non-empty string provided
+            if (logoSource) appLogo.src = logoSource;
+        }
+
+        // Login / Register header logos (if present) and initial loading logo
+        const loginLogo = document.getElementById('login-header-logo');
+        const registerLogo = document.getElementById('register-header-logo');
+        const initialLoadingLogo = initialLoadingScreen.querySelector('.initial-loading-logo');
+
+        [loginLogo, registerLogo, initialLoadingLogo].forEach(imgEl => {
+            if (!imgEl) return;
+            imgEl.onload = () => { imgEl.style.display = 'block'; };
+            imgEl.onerror = () => { try { imgEl.style.display = 'none'; } catch (e) {} };
+            if (logoSource) imgEl.src = logoSource;
+        });
+
+        // If no usable logo was set, ensure textual title remains visible
+        if (!logoSource) {
+            if (appLogo) appLogo.style.display = 'none';
+            if (appTitle) appTitle.style.display = 'block';
+            if (removeLogoBtn) removeLogoBtn.style.display = 'none';
+        }
+    } catch (e) {
+        // Defensive: never throw from applyLogo; log only.
+        console.warn('applyLogo non-fatal error:', e);
+        if (appLogo) try { appLogo.style.display = 'none'; } catch {}
+        if (appTitle) appTitle.style.display = 'block';
+        if (removeLogoBtn) removeLogoBtn.style.display = 'none';
     }
-
-    // Login / Register header logos (if present)
-    const loginLogo = document.getElementById('login-header-logo');
-    const registerLogo = document.getElementById('register-header-logo');
-    const initialLoadingLogo = initialLoadingScreen.querySelector('.initial-loading-logo');
-
-    [loginLogo, registerLogo, initialLoadingLogo].forEach(imgEl => {
-        if (!imgEl) return;
-        imgEl.onerror = () => {
-            imgEl.style.display = 'none';
-            // Ensure corresponding textual title is visible when appropriate
-            updateAuthScreenHeader(imgEl.id, imgEl.id === 'login-header-logo' ? 'login-header-title' : 'register-header-title');
-        };
-        imgEl.src = logoSource;
-        imgEl.style.display = 'block';
-    });
-
-    // Hide textual app title when we have a visible logo
-    if (appTitle) appTitle.style.display = 'none';
-    if (removeLogoBtn) removeLogoBtn.style.display = 'inline-block';
 }
 
 /**

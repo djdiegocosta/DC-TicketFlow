@@ -708,6 +708,7 @@ function renderSaleItem(sale) {
 async function confirmSalePayment(saleId) {
     // When a sale is confirmed we: mark sale paid, activate tickets, auto-generate PDFs for each ticket,
     // and refresh the sales management screen so download icons/actions become available.
+    // IMPORTANT: ensure loading is always stopped (in finally) to avoid UI lock.
     showLoading();
     try {
         const { error: upSaleErr } = await supabase
@@ -732,12 +733,37 @@ async function confirmSalePayment(saleId) {
             // don't block the flow; inform user via logs and continue
         }
 
+        // After DB operations succeed, proactively refresh only the data (Supabase) used by the UI.
+        // This refresh is independent from images or layout.
+        try {
+            // Refresh cached sales from Supabase
+            const { data: sales, error: salesError } = await supabase
+                .from('sales')
+                .select('*, tickets(id, ticket_code, participant_name, buyer_name, created_at, status)')
+                .eq('event_id', state.activeEvent ? state.activeEvent.id : null)
+                .order('created_at', { ascending: false });
+            if (!salesError && Array.isArray(sales)) state.cachedSalesData = sales;
+            // Optionally refresh active event data (without touching any UI assets)
+            if (state.activeEvent && state.activeEvent.id) {
+                const { data: ev, error: evErr } = await supabase
+                    .from('events')
+                    .select('*')
+                    .eq('id', state.activeEvent.id)
+                    .maybeSingle();
+                if (!evErr && ev) state.activeEvent = ev;
+            }
+        } catch (refreshErr) {
+            console.warn('Warning: data refresh after confirm failed:', refreshErr);
+        }
+
         showMessage('success', 'Pagamento confirmado, ingressos ativados e PDFs gerados!');
+        // Update UI lists which will read from refreshed state.cachedSalesData / state.activeEvent
         updateSalesManagementScreen();
     } catch (err) {
         console.error('Error confirming payment:', err);
         showDetailedError('ERRO AO CONFIRMAR PAGAMENTO', err, 'Vendas');
     } finally {
+        // ALWAYS hide loading to avoid trapping the UI even if errors occurred.
         hideLoading();
     }
 }
